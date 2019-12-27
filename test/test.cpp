@@ -1,26 +1,19 @@
 #include <iostream>
-#include <vector>
-
-int* func()
-{
-    int* const p = NULL;
-    return p;
-}
-
-struct A
-{
-    int a;
-    int b;
-};
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>          /* See NOTES */
+#include <sys/socket.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <signal.h>
 
 int main()
 {
-    int a;
-    long c;
-    short* b;
-    float f;
 
-    b = reinterpret_cast<short*>(a);
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    std::cout<<sockfd<<std::endl;
 
     return 0;
 }

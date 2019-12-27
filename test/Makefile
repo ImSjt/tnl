@@ -2,7 +2,7 @@ OBJ = $(BASE_DIR)/build-in.o $(NET_DIR)/build-in.o
 
 .PHONY : all
 all : test_event_poll test_thread test_logger test_singleton test_log_file \
-		test_async_logging test_log test_event_loop_thread test_timer
+		test_async_logging test_log test_event_loop_thread test_timer test_acceptor
 
 test_event_poll : TestEventPoll.o
 	$(CXX) $(CXXFLAGS) -o $@ $< $(OBJ)
@@ -31,10 +31,13 @@ test_event_loop_thread : TestEventLoopThread.o
 test_timer : TestTimer.o
 	$(CXX) $(CXXFLAGS) -o $@ $< $(OBJ)
 
+test_acceptor : TestAcceptor.o
+	$(CXX) $(CXXFLAGS) -o $@ $< $(OBJ)
+
 clean:
 	rm -f $(shell find -name "*.o")
 	rm -f test_event_poll test_thread test_logger test_singleton test_log_file \
-			test_async_logging test_log test_event_loop_thread test_timer
+			test_async_logging test_log test_event_loop_thread test_timer test_acceptor
 
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<

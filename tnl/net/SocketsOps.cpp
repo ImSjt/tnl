@@ -38,6 +38,23 @@ const struct sockaddr_in6* sockets::sockaddr_in6_cast(const struct sockaddr* add
     return reinterpret_cast<const struct sockaddr_in6*>(addr);
 }
 
+static void setNonBlockAndCloseOnExec(int sockfd)
+{
+    // non-block
+    int flags = ::fcntl(sockfd, F_GETFL, 0);
+    flags |= O_NONBLOCK;
+    int ret = ::fcntl(sockfd, F_SETFL, flags);
+    // FIXME check
+
+    // close-on-exec
+    flags = ::fcntl(sockfd, F_GETFD, 0);
+    flags |= FD_CLOEXEC;
+    ret = ::fcntl(sockfd, F_SETFD, flags);
+    // FIXME check
+
+    (void)ret;
+}
+
 int sockets::createNonblockingOrDie(sa_family_t family)
 {
 #if VALGRIND
@@ -47,7 +64,7 @@ int sockets::createNonblockingOrDie(sa_family_t family)
         LOG_FATAL("sockets::createNonblockingOrDie");
     }
 
-    setnlonBlockAndCloseOnExec(sockfd);
+    setNonBlockAndCloseOnExec(sockfd);
 #else
     int sockfd = ::socket(family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP);
     if (sockfd < 0)
@@ -55,6 +72,7 @@ int sockets::createNonblockingOrDie(sa_family_t family)
         LOG_FATAL("sockets::createNonblockingOrDie");
     }
 #endif
+
     return sockfd;
 }
 

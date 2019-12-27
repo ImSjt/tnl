@@ -1,5 +1,5 @@
 OBJ = Channel.o Poller.o PollPoller.o SocketsOps.o EventLoop.o EventLoopThread.o \
-		Timer.o TimerQueue.o
+		Timer.o TimerQueue.o Socket.o InetAddress.o Acceptor.o
 
 .PHONY : all
 all : build-in.o
