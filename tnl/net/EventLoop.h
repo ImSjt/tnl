@@ -33,7 +33,7 @@ public:
     // 退出循环
     void quit();
 
-    // 判断该loop是否在其对应的线程中
+    // 判断该loop是否在其对应的线程中执行
     bool isInLoopThread() const{ return mThreadId == CurThread::tid(); }
 
     void wakeup();  // 唤醒loop

@@ -30,7 +30,7 @@ int PollPoller::poll(int timeoutMs, ChannelList& activeChannels)
     }
     else if (num == 0)
     {
-        LOG_DEBUG("no io ready"); 
+        LOG_TRACE("no io ready"); 
     }
     else
     {

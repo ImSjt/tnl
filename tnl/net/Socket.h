@@ -16,7 +16,7 @@ public:
     explicit Socket(int sockfd) :
         mSockfd(sockfd)
     { 
-        LOG_DEBUG("Socket:%d", sockfd);
+
     }
 
     ~Socket();

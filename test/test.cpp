@@ -1,19 +1,67 @@
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>          /* See NOTES */
-#include <sys/socket.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <signal.h>
+#include <functional>
+
+using namespace std;
+
+class Test
+{
+public:
+    Test()
+    {
+        cout<<"construct"<<endl;
+    }
+
+    Test(const Test& t)
+    {
+        cout<<"copy construct"<<endl;
+    }
+
+    Test(const Test&& t)
+    {
+        cout<<"copy && construct"<<endl;
+    }
+
+    ~Test()
+    {
+        cout<<"destruct"<<endl;
+    }  
+};
+
+void func(const Test& t)
+{
+
+}
 
 int main()
 {
+    std::function<void()> f;
+    f = std::bind(func, Test());
 
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    std::cout<<sockfd<<std::endl;
+    f();
 
     return 0;
 }
+
+/*
+construct
+-----------------
+copy construct
+copy construct
+copy construct
+destruct
+destruct
+copy construct
+destruct
+destruct
+destruct
+
+construct
+-----------------
+copy construct
+copy construct
+copy construct
+destruct
+destruct
+destruct
+destruct
+*/

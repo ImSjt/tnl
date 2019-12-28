@@ -8,6 +8,8 @@ using namespace tnl::net;
 
 int main(int argc, char* argv[])
 {
+    Logger::setLogLevel(Logger::DEBUG);
+
     EventLoop loop;
     Acceptor acceptor(&loop, InetAddress(std::string("0.0.0.0"), 9859), false);
 

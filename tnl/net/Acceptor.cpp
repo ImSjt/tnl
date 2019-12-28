@@ -14,12 +14,9 @@ using namespace tnl::net;
 Acceptor::Acceptor(EventLoop* loop, const InetAddress& listenAddr, bool reuseport) :
     mLoop(loop),
     mAcceptSocket(sockets::createNonblockingOrDie(listenAddr.family())),
-    mAcceptChannel(loop, mAcceptChannel.fd()),
+    mAcceptChannel(loop, mAcceptSocket.fd()),
     mListenning(false)
 {
-    LOG_TRACE("socket(%d),ip(%s),port(%d)",
-                    mAcceptChannel.fd(), listenAddr.toIp().c_str(), listenAddr.toPort());
-
     mAcceptSocket.setReuseAddr(true);
     mAcceptSocket.setReusePort(reuseport);
     mAcceptSocket.bindAddress(listenAddr);

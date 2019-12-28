@@ -64,10 +64,12 @@ void EventLoop::loop()
         }
         else if (num == 0)
         {
-            LOG_DEBUG("no channel ready");
+            LOG_TRACE("no channel ready");
         }
         else
         {
+            LOG_TRACE("handle %d channel", mActiveChannels.size());
+
             mEventHandling = true;
 
             for (Channel* channel : mActiveChannels)
