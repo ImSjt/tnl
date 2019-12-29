@@ -53,6 +53,13 @@ void TcpServer::start()
     }
 }
 
+TcpConnection* TcpServer::createNewConnection(EventLoop* loop,
+                    const std::string& name, int sockfd,
+                    const InetAddress& localAddr, const InetAddress& peerAddr)
+{
+    return new TcpConnection(loop, name, sockfd, localAddr, peerAddr);
+}
+
 void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
 {
     assert(mLoop->isInLoopThread());
@@ -67,7 +74,12 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
                 mName.c_str(), connName.c_str(), peerAddr.toIpPort().c_str());
     
     InetAddress localAddr(sockets::getLocalAddr(sockfd));
-    TcpConnectionPtr conn(new TcpConnection(ioLoop,
+    // TcpConnectionPtr conn(new TcpConnection(ioLoop,
+    //                                         connName,
+    //                                         sockfd,
+    //                                         localAddr,
+    //                                         peerAddr));
+    TcpConnectionPtr conn(createNewConnection(ioLoop,
                                             connName,
                                             sockfd,
                                             localAddr,
@@ -75,18 +87,24 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
 
     mConnections[connName] = conn;
     
-    if (mConnectionCallback)
-        conn->setConnectionCallback(mConnectionCallback);
-    if (mMessageCallback)
-        conn->setMessageCallback(mMessageCallback);
+    // mConnectionCallback连接建立完成后会调用
+    // if (mConnectionCallback)
+    //     conn->setConnectionCallback(mConnectionCallback);
     
-    if (mWriteCompleteCallback)
-        conn->setWriteCompleteCallback(mWriteCompleteCallback);
+    // 收到消息后会调用、
+    // 剔除，将处理放到TcpConnection中做
+    // if (mMessageCallback)
+    //     conn->setMessageCallback(mMessageCallback);
     
+    // 写完成的时候会调用，修改？
+    // if (mWriteCompleteCallback)
+    //     conn->setWriteCompleteCallback(mWriteCompleteCallback);
+    
+    // 关闭的时候会调用
     conn->setCloseCallback(std::bind(&TcpServer::removeConnection,
                             this, std::placeholders::_1));
     
-    // 连接完成，开启读
+    // 连接建立完成，开启读
     ioLoop->runInLoop(std::bind(&TcpConnection::connectEstablished, conn));
 }
 

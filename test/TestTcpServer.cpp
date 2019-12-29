@@ -11,7 +11,7 @@ using namespace tnl::net;
 int main(int argc, char* argv[])
 {
     EventLoop loop;
-    TcpServer server(&loop, InetAddress("0.0.0.0", 9859), std::string("tcpclient"));
+    TcpServer server(&loop, InetAddress("0.0.0.0", 9859), "tcp");
 
     server.setThreadNum(2);
     server.start();

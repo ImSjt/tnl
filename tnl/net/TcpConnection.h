@@ -17,10 +17,6 @@ namespace net
 
 class TcpConnection;
 using TcpConnectionPtr = std::shared_ptr<TcpConnection>;
-using ConnectionCallback = std::function<void (const TcpConnectionPtr&)>;
-using MessageCallback = std::function<void (const TcpConnectionPtr&, Buffer*)>;
-using WriteCompleteCallback = std::function<void (const TcpConnectionPtr&)>;
-using HighWaterMarkCallback = std::function<void (const TcpConnectionPtr&, size_t)>;
 using CloseCallback = std::function<void (const TcpConnectionPtr&)>;
 
 class TcpConnection : noncopyable, public std::enable_shared_from_this<TcpConnection>
@@ -28,7 +24,7 @@ class TcpConnection : noncopyable, public std::enable_shared_from_this<TcpConnec
 public:
     TcpConnection(EventLoop* loop, const std::string& name, int sockfd,
                     const InetAddress& localAddr, const InetAddress& peerAddr);
-    ~TcpConnection();
+    virtual ~TcpConnection();
 
     EventLoop* getLoop() const { return mLoop; }
     const std::string& name() const { return mName; }
@@ -50,17 +46,8 @@ public:
     void stopRead();
     bool isReading() const { return mReading; };
 
-    void setConnectionCallback(const ConnectionCallback& cb)
-    { mConnectionCallback = cb; }
-
-    void setMessageCallback(const MessageCallback& cb)
-    { mMessageCallback = cb; }
-
-    void setWriteCompleteCallback(const WriteCompleteCallback& cb)
-    { mWriteCompleteCallback = cb; }
-
-    void setHighWaterMarkCallback(const HighWaterMarkCallback& cb, size_t highWaterMark)
-    { mHighWaterMarkCallback = cb; mHighWaterMark = highWaterMark; }
+    void setHighWaterMark(size_t highWaterMark)
+    { mHighWaterMark = highWaterMark; }
 
     Buffer* inputBuffer()
     { return &mInputBuffer; }
@@ -68,12 +55,20 @@ public:
     Buffer* outputBuffer()
     { return &mOutputBuffer; }
 
+    // 设置关闭回调函数
     void setCloseCallback(const CloseCallback& cb)
     { mCloseCallback = cb; }
 
     void connectEstablished();
 
     void connectDestroyed();
+
+protected:
+    // 提供接口
+    virtual void handleConnection();    // 连接建立或者连接断开
+    virtual void handleBytes(Buffer*);  // 处理请求
+    virtual void handleWriteComplete(); // 写完成
+    virtual void highWaterMark(size_t); // 超过警戒线时的写处理
 
 private:
     enum ConnState { Disconnected, Connecting, Connected, Disconnecting };
@@ -93,6 +88,9 @@ private:
     void startReadInLoop();
     void stopReadInLoop();
 
+    void writeCompleteCallback();
+    void highWaterMarkCallback(size_t);
+
 private:
     EventLoop* mLoop;
     const std::string mName;
@@ -103,10 +101,10 @@ private:
     std::unique_ptr<Channel> mChannel;
     const InetAddress mLocalAddr;
     const InetAddress mPeerAddr;
-    ConnectionCallback mConnectionCallback;
-    MessageCallback mMessageCallback;
-    WriteCompleteCallback mWriteCompleteCallback;
-    HighWaterMarkCallback mHighWaterMarkCallback;
+    // ConnectionCallback mConnectionCallback;
+    // MessageCallback mMessageCallback;
+    // WriteCompleteCallback mWriteCompleteCallback;
+    // HighWaterMarkCallback mHighWaterMarkCallback;
     CloseCallback mCloseCallback;
     size_t mHighWaterMark;
     Buffer mInputBuffer;

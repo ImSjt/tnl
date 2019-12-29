@@ -21,7 +21,7 @@ class TcpServer : noncopyable
 public:
     TcpServer(EventLoop* loop, const InetAddress& listenAddr,
                 const std::string& name, bool reusePort = false);
-    ~TcpServer();
+    virtual ~TcpServer();
 
     const std::string& ipPort() const { return mIpPort; }
     const std::string& name() const { return mName; }
@@ -34,14 +34,10 @@ public:
 
     void start();
 
-    void setConnectionCallback(const ConnectionCallback& cb)
-    { mConnectionCallback = cb; }
-
-    void setMessageCallback(const MessageCallback& cb)
-    { mMessageCallback = cb; }
-
-    void setWriteCompleteCallback(const WriteCompleteCallback& cb)
-    { mWriteCompleteCallback = cb; }
+protected:
+    virtual TcpConnection* createNewConnection(EventLoop* loop,
+                    const std::string& name, int sockfd,
+                    const InetAddress& localAddr, const InetAddress& peerAddr);
 
 private:
     void newConnection(int sockfd, const InetAddress& peerAddr);
@@ -58,10 +54,6 @@ private:
 
     std::unique_ptr<Acceptor> mAcceptor;
     std::shared_ptr<EventLoopThreadPool> mThreadPools;
-
-    ConnectionCallback mConnectionCallback;
-    MessageCallback mMessageCallback;
-    WriteCompleteCallback mWriteCompleteCallback;
 
     // 总是在 baseloop 中调用
     int mNextConnId;

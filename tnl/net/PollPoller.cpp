@@ -30,7 +30,7 @@ int PollPoller::poll(int timeoutMs, ChannelList& activeChannels)
     }
     else if (num == 0)
     {
-        LOG_TRACE("no io ready"); 
+        // LOG_TRACE("no io ready"); 
     }
     else
     {
@@ -45,7 +45,7 @@ void PollPoller::updateChannel(Channel* channel)
     // 修改通道必须在loop所在的线程中进行
     assert(mLoop->isInLoopThread());
     
-    LOG_TRACE("undate channel, fd:%d", channel->fd());
+    // LOG_TRACE("undate channel, fd:%d", channel->fd());
     if (channel->index() < 0) // 通道不存在于loop中
     {
         // 通道必须不存在于loop中
@@ -95,7 +95,7 @@ void PollPoller::removeChannel(Channel* channel)
     // 修改通道必须在loop所在的线程中进行
     assert(mLoop->isInLoopThread());
 
-    LOG_TRACE("remove channel, fd:%d", channel->fd());
+    // LOG_TRACE("remove channel, fd:%d", channel->fd());
 
     // 通道必须存在map中
     assert(mChannels.find(channel->fd()) != mChannels.end());

@@ -8,20 +8,6 @@
 using namespace tnl;
 using namespace tnl::net;
 
-static void defaultConnectionCallback(const TcpConnectionPtr& conn)
-{
-    LOG_TRACE("%s -> %s is %s", conn->localAddress().toIpPort().c_str(),
-                                conn->peerAddress().toIpPort().c_str(),
-                                (conn->connected() ? "UP" : "DOWN"));
-}
-
-static void defaultMessageCallback(const TcpConnectionPtr&,
-                                        Buffer* buf)
-{
-    LOG_TRACE("get msg bytes(%d)", buf->readableBytes());
-    buf->retrieveAll();
-}
-
 TcpConnection::TcpConnection(EventLoop* loop, const std::string& name, int sockfd,
                 const InetAddress& localAddr, const InetAddress& peerAddr) :
     mLoop(loop),
@@ -32,9 +18,7 @@ TcpConnection::TcpConnection(EventLoop* loop, const std::string& name, int sockf
     mChannel(new Channel(loop, sockfd)),
     mLocalAddr(localAddr),
     mPeerAddr(peerAddr),
-    mHighWaterMark(64*1024*1024), // 发送缓存警告线
-    mConnectionCallback(defaultConnectionCallback),
-    mMessageCallback(defaultMessageCallback)
+    mHighWaterMark(64*1024*1024) // 发送缓存警告线
 {
     mChannel->setReadCallback(
         std::bind(&TcpConnection::handleRead, this));
@@ -129,20 +113,16 @@ void TcpConnection::connectEstablished()
     
     mChannel->enableReading();
 
-    mConnectionCallback(shared_from_this());
+    // 到此，底层连接已建立
+
+    handleConnection(); // 上层建立连接
 }
 
 void TcpConnection::connectDestroyed()
 {
     assert(mLoop->isInLoopThread());
+    assert(mState == Disconnected);
     LOG_TRACE("connect destroy,state=%s", stateToString());
-    if (mState == Connected)
-    {
-        setState(Disconnected);
-        mChannel->disableAll();
-
-        mConnectionCallback(shared_from_this());
-    }
     
     mChannel->remove();
 }
@@ -154,7 +134,7 @@ void TcpConnection::handleRead()
     ssize_t n = mInputBuffer.readFd(mChannel->fd(), &savedErrno);
     if (n > 0)
     {
-        mMessageCallback(shared_from_this(), &mInputBuffer);
+        handleBytes(&mInputBuffer); // 处理请求
     }
     else if (n == 0)
     {
@@ -183,10 +163,8 @@ void TcpConnection::handleWrite()
             if (mOutputBuffer.readableBytes() == 0)
             {
                 mChannel->disableWriting();
-                if (mWriteCompleteCallback)
-                {
-                    mLoop->queueInLoop(std::bind(mWriteCompleteCallback, shared_from_this()));
-                }
+
+                mLoop->queueInLoop(std::bind(&TcpConnection::writeCompleteCallback, this));
                 if (mState == Disconnecting)
                 {
                     shutdownInLoop();
@@ -215,9 +193,11 @@ void TcpConnection::handleClose()
     mChannel->disableAll();
 
     TcpConnectionPtr guardThis(shared_from_this());
-    mConnectionCallback(guardThis);
     
-    mCloseCallback(guardThis);
+    // 断开连接时调用
+    handleConnection(); // 连接断开，上层清除工作
+
+    mCloseCallback(guardThis); // 底层清除工作
 }
 
 void TcpConnection::handleError()
@@ -249,9 +229,9 @@ void TcpConnection::sendInLoop(const char* message, size_t len)
             remaining = len - nwrote;
 
             // 发送完后调用写完成回调
-            if (remaining == 0 && mWriteCompleteCallback)
+            if (remaining == 0)
             {
-                mLoop->queueInLoop(std::bind(mWriteCompleteCallback, shared_from_this()));
+                mLoop->queueInLoop(std::bind(&TcpConnection::writeCompleteCallback, this));
             }
         }
         else
@@ -275,11 +255,10 @@ void TcpConnection::sendInLoop(const char* message, size_t len)
     {
         size_t oldLen = mOutputBuffer.readableBytes(); // 缓存区中剩余的数据
         if (oldLen + remaining >= mHighWaterMark       // 如果总的数据高于警告线
-                    && oldLen < mHighWaterMark
-                    && mHighWaterMarkCallback)
+                    && oldLen < mHighWaterMark)
         {
             // 那么就使用 mHighWaterMarkCallback
-            mLoop->queueInLoop(std::bind(mHighWaterMarkCallback, shared_from_this(), oldLen + remaining));
+            mLoop->queueInLoop(std::bind(&TcpConnection::highWaterMarkCallback, this, oldLen+remaining));
         }
 
         mOutputBuffer.append(message+nwrote, remaining);
@@ -350,4 +329,39 @@ void TcpConnection::stopReadInLoop()
         mChannel->disableReading();
         mReading = false;
     }
+}
+
+void TcpConnection::writeCompleteCallback()
+{
+    handleWriteComplete();
+}
+
+void TcpConnection::highWaterMarkCallback(size_t size)
+{
+    highWaterMark(size);
+}
+
+void TcpConnection::handleConnection()
+{
+    LOG_TRACE("%s -> %s is %s", localAddress().toIpPort().c_str(),
+                                peerAddress().toIpPort().c_str(),
+                                (connected() ? "UP" : "DOWN"));
+}
+
+void TcpConnection::handleBytes(Buffer* buf)
+{
+    buf->appendInt8('\0');
+    LOG_DEBUG("Get msg: %s", buf->peek());
+    
+    buf->retrieveAll();
+}
+
+void TcpConnection::handleWriteComplete()
+{
+    LOG_TRACE("TcpConnection::handleWriteComplete");
+}
+
+void TcpConnection::highWaterMark(size_t size)
+{
+    LOG_TRACE("TcpConnection::highWaterMark, size: %d", size);
 }
